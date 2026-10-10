@@ -39,7 +39,7 @@ from . import language, upstream
 from .config import ATTRIBUTION, DEFAULT_SYSTEM_PROMPT, settings
 from .db import ApiKey, SessionLocal, UsageLog, init_db
 
-VERSION = "0.1.0"
+VERSION = "2.0.0"
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):

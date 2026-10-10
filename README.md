@@ -8,6 +8,8 @@ N-ATLaS is open, but using it today means downloading an 8B-parameter model, fin
 
 Built for the National AI Innovation Challenge 2026, Problem Statement 1 (Developer Infrastructure).
 
+**Current version: v2.0.0.** See [CHANGELOG.md](CHANGELOG.md).
+
 ## What's included
 
 | Part | Path | What it does |

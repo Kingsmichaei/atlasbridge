@@ -11,4 +11,4 @@ Digital Economy, and powered by Awarri Technologies.
 from .client import AtlasBridge, AtlasBridgeError, Conversation
 
 __all__ = ["AtlasBridge", "AtlasBridgeError", "Conversation"]
-__version__ = "0.1.0"
+__version__ = "2.0.0"
