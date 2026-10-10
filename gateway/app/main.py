@@ -183,6 +183,9 @@ class ChatRequest(BaseModel):
     top_p: float | None = Field(default=None, gt=0, le=1)
     max_tokens: int | None = Field(default=None, ge=1, le=2048)
     repetition_penalty: float | None = Field(default=None, ge=1, le=2)
+    # AtlasBridge extension: language N-ATLaS should reply in. "auto" (default) follows the
+    # user's latest message when no system prompt is supplied.
+    language: Literal["auto", "en", "ha", "ig", "yo"] = "auto"
 
 
 class TranslateRequest(BaseModel):
@@ -237,16 +240,46 @@ async def models(key: ApiKey = Depends(require_key)):
     }]}
 
 
+def _prepare_messages(messages: list[dict], requested: str) -> tuple[list[dict], str, str | None]:
+    """Add the default system prompt and an explicit reply-language instruction.
+
+    N-ATLaS (8B) often answers in the wrong Nigerian language when left to infer it,
+    especially when earlier turns used another language. Naming the language in the
+    system prompt fixes that. Returns (messages, detected_language, reply_language).
+    """
+    messages = [dict(m) for m in messages]
+    detected = language.detect(_last_user_text(messages))
+    has_system = any(m["role"] == "system" for m in messages)
+
+    reply_lang = None
+    if requested != "auto":
+        reply_lang = requested
+        instruction = f"Always reply in {language.NAMES[reply_lang]}."
+    elif not has_system and detected["language"] != "und":
+        reply_lang = detected["language"]
+        name = language.NAMES[reply_lang]
+        instruction = (f"The user's latest message is in {name}. Reply only in {name}, even if earlier "
+                       f"messages used another language, unless the user explicitly asks for a different language.")
+    else:
+        instruction = ""
+
+    if not has_system:
+        messages = [{"role": "system", "content": DEFAULT_SYSTEM_PROMPT}] + messages
+    if instruction:
+        for m in messages:
+            if m["role"] == "system":
+                m["content"] = f"{m['content'].rstrip()}\n\n{instruction}"
+                break
+    return messages, detected["language"], reply_lang
+
+
 @app.post("/v1/chat/completions")
 async def chat_completions(body: ChatRequest, request: Request, key: ApiKey = Depends(require_key)):
     started = time.perf_counter()
     raw = body.model_dump(exclude_none=True)
-    messages = raw["messages"]
-    if not any(m["role"] == "system" for m in messages):
-        messages = [{"role": "system", "content": DEFAULT_SYSTEM_PROMPT}] + messages
+    messages, lang, reply_lang = _prepare_messages(raw["messages"], body.language)
     raw["messages"] = messages
     user_text = _last_user_text(messages)
-    lang = language.detect(user_text)["language"]
     payload = upstream.build_payload(raw, stream=body.stream)
 
     if not body.stream:
@@ -258,7 +291,7 @@ async def chat_completions(body: ChatRequest, request: Request, key: ApiKey = De
         usage = result.get("usage") or {}
         reply = result["choices"][0]["message"]["content"]
         result["model"] = "n-atlas"
-        result.setdefault("x_atlasbridge", {})["detected_language"] = lang
+        result.setdefault("x_atlasbridge", {}).update(detected_language=lang, reply_language=reply_lang or "unspecified")
         _log(key, request, "chat", 200, started, lang=lang, prompt_tokens=usage.get("prompt_tokens", 0),
              completion_tokens=usage.get("completion_tokens", 0), prompt=user_text, reply=reply)
         return result

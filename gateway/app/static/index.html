@@ -127,7 +127,15 @@ footer{border-top:1px solid var(--line);padding:20px 0 30px;color:var(--muted);f
           <input id="chatInput" placeholder="Ask anything in English, Hausa, Igbo or Yoruba…" autocomplete="off" style="flex:5">
           <button id="sendBtn" style="flex:1">Send</button>
         </form>
-        <div class="row" style="margin-top:8px"><button class="ghost" id="clearBtn" type="button" style="flex:0 0 auto">New chat</button><span class="small" id="chatMeta"></span></div>
+        <div class="row" style="margin-top:8px">
+          <button class="ghost" id="clearBtn" type="button" style="flex:0 0 auto">New chat</button>
+          <label for="replyLang" class="small" style="flex:0 0 auto;margin:0">Reply in</label>
+          <select id="replyLang" style="flex:0 0 150px;padding:6px 8px">
+            <option value="auto">Same as my message</option><option value="en">English</option>
+            <option value="ha">Hausa</option><option value="ig">Igbo</option><option value="yo">Yoruba</option>
+          </select>
+          <span class="small" id="chatMeta"></span>
+        </div>
       </div>
 
       <div class="pane" id="pane-translate">
@@ -259,7 +267,7 @@ $("chatForm").addEventListener("submit", async (e) => {
   try{
     const r = await fetch(BASE + "/chat/completions", {method:"POST",
       headers:{"Content-Type":"application/json","Authorization":"Bearer "+key()},
-      body: JSON.stringify({model:"n-atlas", stream:true, messages:history})});
+      body: JSON.stringify({model:"n-atlas", stream:true, language:$("replyLang").value, messages:history})});
     if (!r.ok){ const d = await r.json().catch(()=>({})); throw new Error(d?.error?.message || ("Error " + r.status)); }
     const reader = r.body.getReader(); const dec = new TextDecoder(); let buf = "";
     while (true){

@@ -135,3 +135,28 @@ def test_revoke(client):
     kid, k = r.json()["id"], r.json()["api_key"]
     client.post(f"/admin/keys/{kid}/revoke", headers=ADMIN)
     assert client.get("/v1/models", headers=auth(k)).status_code == 401
+
+
+def test_reply_language_instruction():
+    from app.main import _prepare_messages
+    # Hausa first, then Igbo: the instruction must follow the latest (Igbo) message.
+    msgs = [{"role": "user", "content": "Menene amfanin ruwa?"}, {"role": "assistant", "content": "Ruwa yana..."},
+            {"role": "user", "content": "Kedu ka i mere?"}]
+    out, detected, reply = _prepare_messages(msgs, "auto")
+    assert detected == "ig" and reply == "ig"
+    assert "Reply only in Igbo" in out[0]["content"]
+    # Explicit language wins.
+    out, _, reply = _prepare_messages([{"role": "user", "content": "Hello"}], "yo")
+    assert reply == "yo" and "Always reply in Yoruba" in out[0]["content"]
+    # A developer's own system prompt is left alone in auto mode.
+    out, _, reply = _prepare_messages([{"role": "system", "content": "Be terse."}, {"role": "user", "content": "Sannu"}], "auto")
+    assert reply is None and out[0]["content"] == "Be terse."
+
+
+def test_language_eval_set():
+    import sys, os
+    sys.path.insert(0, os.path.dirname(__file__))
+    from lang_eval import CASES
+    total = sum(len(v) for v in CASES.values())
+    hits = sum(language.detect(t)["language"] == l for l, xs in CASES.items() for t in xs)
+    assert hits / total >= 0.95

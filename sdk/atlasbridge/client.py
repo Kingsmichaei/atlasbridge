@@ -72,24 +72,28 @@ class AtlasBridge:
         return msgs
 
     # ---- public API ----
-    def chat(self, prompt: str | list[dict], *, system: str | None = None, temperature: float = 0.1,
-             max_tokens: int = 512) -> str:
-        """Send a prompt (or a list of OpenAI-style messages) and return the reply text."""
-        data = self.chat_raw(prompt, system=system, temperature=temperature, max_tokens=max_tokens)
+    def chat(self, prompt: str | list[dict], *, system: str | None = None, language: str = "auto",
+             temperature: float = 0.1, max_tokens: int = 512) -> str:
+        """Send a prompt (or a list of OpenAI-style messages) and return the reply text.
+
+        language: "auto" (reply in the user's language) or en/ha/ig/yo / English/Hausa/Igbo/Yoruba.
+        """
+        data = self.chat_raw(prompt, system=system, language=language, temperature=temperature, max_tokens=max_tokens)
         return data["choices"][0]["message"]["content"]
 
-    def chat_raw(self, prompt: str | list[dict], *, system: str | None = None, temperature: float = 0.1,
-                 max_tokens: int = 512) -> dict:
+    def chat_raw(self, prompt: str | list[dict], *, system: str | None = None, language: str = "auto",
+                 temperature: float = 0.1, max_tokens: int = 512) -> dict:
         """Like chat(), but returns the full OpenAI-format response (usage, detected language...)."""
         return self._post("/chat/completions", {
-            "model": "n-atlas", "messages": self._messages(prompt, system),
+            "model": "n-atlas", "messages": self._messages(prompt, system), "language": _lang(language),
             "temperature": temperature, "max_tokens": max_tokens,
         })
 
-    def stream(self, prompt: str | list[dict], *, system: str | None = None, temperature: float = 0.1,
-               max_tokens: int = 512) -> Iterator[str]:
+    def stream(self, prompt: str | list[dict], *, system: str | None = None, language: str = "auto",
+               temperature: float = 0.1, max_tokens: int = 512) -> Iterator[str]:
         """Yield the reply piece by piece as N-ATLaS generates it."""
         payload = {"model": "n-atlas", "messages": self._messages(prompt, system), "stream": True,
+                   "language": _lang(language),
                    "temperature": temperature, "max_tokens": max_tokens}
         with self._http.stream("POST", "/chat/completions", json=payload) as r:
             if r.status_code >= 400:

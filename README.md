@@ -28,6 +28,8 @@ Your app ──(OpenAI SDK / AtlasBridge SDK / HTTP)──▶ AtlasBridge gatewa
                                      NCAIR1/N-ATLaS, Llama-3 8B, fp16, Llama-3 chat template
 ```
 
+**Language handling.** N-ATLaS is an 8B model, and left to itself it sometimes answers in the wrong Nigerian language, especially in conversations that switch languages. The gateway detects the language of each message offline (97% on a held-out set of everyday phrases typed with or without diacritics) and names the reply language in the system prompt. Developers can override it with `language`.
+
 **How the integration works.** Every model call goes to `NCAIR1/N-ATLaS`, and no other model is used. The serving layer loads the official weights and applies N-ATLaS's own chat template (including its `date_string` system header). It uses the generation settings recommended on the model card: temperature 0.1 and repetition penalty 1.12. The gateway adds a default multilingual system prompt and builds translation and language-ID tasks as N-ATLaS prompts.
 
 ## Quick start (using a deployed gateway)
@@ -46,7 +48,8 @@ print(r.choices[0].message.content)
 from atlasbridge import AtlasBridge
 
 ab = AtlasBridge(api_key="ab_...", base_url="https://<gateway>")
-ab.chat("Kedu ka ị mere?")
+ab.chat("Kedu ka ị mere?")                     # replies in Igbo
+ab.chat("Tell me about Kano", language="hausa")    # force the reply language
 ab.translate("Wash your hands before eating.", to="hausa")
 ab.detect_language("Kini anfaani omi fun ara eniyan?")   # {'language': 'yo', ...}
 for piece in ab.stream("Tell me about Kano"): print(piece, end="")
@@ -61,7 +64,7 @@ All endpoints take `Authorization: Bearer <key>`. Errors use the OpenAI error sh
 | Method | Path | Body | Notes |
 |---|---|---|---|
 | GET | `/v1/models` | | Lists `n-atlas` |
-| POST | `/v1/chat/completions` | OpenAI chat format; `stream`, `temperature`, `top_p`, `max_tokens`, `repetition_penalty` | Adds `x_atlasbridge.detected_language` to the response |
+| POST | `/v1/chat/completions` | OpenAI chat format; `stream`, `temperature`, `top_p`, `max_tokens`, `repetition_penalty`, plus `language` (`auto`/`en`/`ha`/`ig`/`yo`) | In `auto`, the gateway detects the user's language and tells N-ATLaS to reply in it. Adds `x_atlasbridge.detected_language` and `reply_language` to the response |
 | POST | `/v1/translate` | `{text, target, source="auto"}` | `en`, `ha`, `ig`, `yo` |
 | POST | `/v1/detect-language` | `{text, method="heuristic" or "model"}` | Fast offline rules, or ask N-ATLaS |
 | GET | `/v1/usage` | | Your own usage |

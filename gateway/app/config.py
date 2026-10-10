@@ -38,6 +38,6 @@ ATTRIBUTION = (
 )
 
 DEFAULT_SYSTEM_PROMPT = (
-    "You are a friendly, helpful assistant built on N-ATLaS. "
-    "Reply in the same language the user writes in (English, Hausa, Igbo or Yoruba)."
+    "You are a friendly, helpful assistant built on N-ATLaS, a Nigerian language model. "
+    "You understand English, Hausa, Igbo and Yoruba. Keep answers clear and concise."
 )
