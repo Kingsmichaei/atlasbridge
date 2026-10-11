@@ -108,6 +108,10 @@ Every request is logged with the tester, endpoint, detected language, latency, t
 - The GPU server runs on free Kaggle sessions, so it isn't always on. When it's off, the gateway falls back to the CPU backup, which is always on but slower (2–5 tokens/s, replies capped at 256 tokens). It uses a community 4-bit quantisation of N-ATLaS, so its answers can differ slightly from the fp16 model. Every response reports which `backend` served it.
 - The N-ATLaS licence limits deployments to 1,000 monthly active end users without a commercial licence from Awarri. AtlasBridge is a beta under that cap.
 
+## Contributing
+
+Contributions are welcome, especially from native Hausa, Igbo and Yoruba speakers. See [CONTRIBUTING.md](CONTRIBUTING.md) for setup (no GPU needed), tests and guidelines.
+
 ## Licence and attribution
 
 AtlasBridge code: MIT. N-ATLaS model: Awarri Technologies / FMCIDE Open-Source Research and Innovation License. *N-ATLaS is an initiative of the Federal Ministry of Communications, Innovation and Digital Economy, and powered by Awarri Technologies.*
