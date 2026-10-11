@@ -39,7 +39,7 @@ from . import language, upstream
 from .config import ATTRIBUTION, DEFAULT_SYSTEM_PROMPT, settings
 from .db import ApiKey, SessionLocal, UsageLog, init_db
 
-VERSION = "2.0.0"
+VERSION = "2.1.0"
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
@@ -142,7 +142,7 @@ def _preview(text: str) -> str:
 
 def _log(key: ApiKey | None, request: Request, endpoint: str, status: int, started: float, *, lang: str = "",
          prompt_tokens: int = 0, completion_tokens: int = 0, streamed: bool = False,
-         prompt: str = "", reply: str = "", error: str = "") -> None:
+         prompt: str = "", reply: str = "", error: str = "", backend: str = "") -> None:
     with SessionLocal() as s:
         s.add(UsageLog(
             key_id=key.id if key else None,
@@ -157,6 +157,7 @@ def _log(key: ApiKey | None, request: Request, endpoint: str, status: int, start
             prompt_preview=_preview(prompt),
             reply_preview=_preview(reply),
             error=error[:500],
+            backend=backend,
         ))
         s.commit()
 
@@ -284,23 +285,25 @@ async def chat_completions(body: ChatRequest, request: Request, key: ApiKey = De
 
     if not body.stream:
         try:
-            result = await upstream.complete(payload)
+            result, backend = await upstream.complete(payload)
         except upstream.UpstreamError as e:
             _log(key, request, "chat", e.status_code, started, lang=lang, prompt=user_text, error=e.detail)
             return _error(e.status_code, e.detail, "upstream_error")
         usage = result.get("usage") or {}
         reply = result["choices"][0]["message"]["content"]
         result["model"] = "n-atlas"
-        result.setdefault("x_atlasbridge", {}).update(detected_language=lang, reply_language=reply_lang or "unspecified")
+        result.setdefault("x_atlasbridge", {}).update(detected_language=lang, reply_language=reply_lang or "unspecified",
+                                                       backend=backend)
         _log(key, request, "chat", 200, started, lang=lang, prompt_tokens=usage.get("prompt_tokens", 0),
-             completion_tokens=usage.get("completion_tokens", 0), prompt=user_text, reply=reply)
+             completion_tokens=usage.get("completion_tokens", 0), prompt=user_text, reply=reply, backend=backend)
         return result
 
     async def events():
         parts: list[str] = []
         status, err = 200, ""
+        used: dict = {}
         try:
-            async for chunk in upstream.stream(payload):
+            async for chunk in upstream.stream(payload, used):
                 chunk["model"] = "n-atlas"
                 for ch in chunk.get("choices", []):
                     parts.append(ch.get("delta", {}).get("content") or "")
@@ -311,19 +314,19 @@ async def chat_completions(body: ChatRequest, request: Request, key: ApiKey = De
         yield "data: [DONE]\n\n"
         reply = "".join(parts)
         _log(key, request, "chat", status, started, lang=lang, completion_tokens=len(reply.split()),
-             streamed=True, prompt=user_text, reply=reply, error=err)
+             streamed=True, prompt=user_text, reply=reply, error=err, backend=used.get("backend", ""))
 
     return StreamingResponse(events(), media_type="text/event-stream")
 
 
-async def _ask(system: str, user: str, max_tokens: int = 512) -> tuple[str, dict]:
+async def _ask(system: str, user: str, max_tokens: int = 512) -> tuple[str, dict, str]:
     payload = upstream.build_payload(
         {"messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
          "temperature": 0.1, "max_tokens": max_tokens},
         stream=False,
     )
-    result = await upstream.complete(payload)
-    return result["choices"][0]["message"]["content"].strip(), result.get("usage") or {}
+    result, backend = await upstream.complete(payload)
+    return result["choices"][0]["message"]["content"].strip(), result.get("usage") or {}, backend
 
 
 @app.post("/v1/translate")
@@ -340,13 +343,13 @@ async def translate(body: TranslateRequest, request: Request, key: ApiKey = Depe
         f"Output only the {tgt_name} translation, with no explanations or quotes."
     )
     try:
-        text, usage = await _ask(system, body.text, max_tokens=min(1024, 64 + 3 * len(body.text.split())))
+        text, usage, backend = await _ask(system, body.text, max_tokens=min(1024, 64 + 3 * len(body.text.split())))
     except upstream.UpstreamError as e:
         _log(key, request, "translate", e.status_code, started, lang=body.target, prompt=body.text, error=e.detail)
         return _error(e.status_code, e.detail, "upstream_error")
     _log(key, request, "translate", 200, started, lang=body.target, prompt_tokens=usage.get("prompt_tokens", 0),
-         completion_tokens=usage.get("completion_tokens", 0), prompt=body.text, reply=text)
-    return {"translation": text, "source": source, "target": body.target, "model": "n-atlas"}
+         completion_tokens=usage.get("completion_tokens", 0), prompt=body.text, reply=text, backend=backend)
+    return {"translation": text, "source": source, "target": body.target, "model": "n-atlas", "backend": backend}
 
 
 @app.post("/v1/detect-language")
@@ -360,7 +363,7 @@ async def detect_language(body: DetectRequest, request: Request, key: ApiKey = D
             "English, Hausa, Igbo, Yoruba, or Other."
         )
         try:
-            answer, _ = await _ask(system, body.text, max_tokens=5)
+            answer, _, _ = await _ask(system, body.text, max_tokens=5)
         except upstream.UpstreamError as e:
             _log(key, request, "detect", e.status_code, started, prompt=body.text, error=e.detail)
             return _error(e.status_code, e.detail, "upstream_error")
@@ -432,12 +435,12 @@ async def admin_report(format: Literal["json", "csv"] = "json"):
     if format == "csv":
         buf = io.StringIO()
         w = csv.writer(buf)
-        w.writerow(["timestamp_utc", "tester", "organisation", "endpoint", "language", "status", "latency_ms",
+        w.writerow(["timestamp_utc", "tester", "organisation", "endpoint", "language", "backend", "status", "latency_ms",
                     "prompt_tokens", "completion_tokens", "streamed", "client", "prompt_preview", "reply_preview", "error"])
         for l in logs:
             k = keys.get(l.key_id)
             w.writerow([l.created_at.isoformat(), k.name if k else "", k.organisation if k else "", l.endpoint,
-                        l.language, l.status_code, l.latency_ms, l.prompt_tokens, l.completion_tokens, l.streamed,
+                        l.language, l.backend, l.status_code, l.latency_ms, l.prompt_tokens, l.completion_tokens, l.streamed,
                         l.client, l.prompt_preview, l.reply_preview, l.error])
         return PlainTextResponse(buf.getvalue(), media_type="text/csv",
                                  headers={"Content-Disposition": "attachment; filename=atlasbridge_usage.csv"})
@@ -445,7 +448,9 @@ async def admin_report(format: Literal["json", "csv"] = "json"):
     per_tester: dict = defaultdict(lambda: {"requests": 0, "ok": 0, "languages": defaultdict(int), "endpoints": defaultdict(int),
                                             "first_seen": None, "last_seen": None, "latencies": []})
     per_language: dict = defaultdict(int)
+    per_backend: dict = defaultdict(int)
     for l in logs:
+        per_backend[l.backend or "n/a"] += 1
         k = keys.get(l.key_id)
         t = per_tester[k.name if k else "unknown"]
         t["requests"] += 1
@@ -472,5 +477,6 @@ async def admin_report(format: Literal["json", "csv"] = "json"):
         "successful_requests": sum(1 for l in logs if l.status_code == 200),
         "distinct_testers": len([t for t in testers if t["tester"] != "unknown"]),
         "by_language": dict(per_language),
+        "by_backend": dict(per_backend),
         "testers": testers,
     }

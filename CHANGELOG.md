@@ -6,6 +6,27 @@ All notable changes to AtlasBridge are recorded here. Versions follow [Semantic 
 
 ---
 
+## v2.1.0 — 11 October 2026
+
+**Always on.** AtlasBridge now keeps answering when the free GPU server is off.
+
+### Added
+- **Automatic CPU fallback.** The gateway sends requests to the fast GPU server (N-ATLaS fp16) while it is healthy. When it isn't, it switches to an always-on CPU backup: N-ATLaS Q4_K_M GGUF (`tosinamuda/N-ATLaS-GGUF`, quantised from `NCAIR1/N-ATLaS`) served by llama.cpp on a free Hugging Face Space. Health checks are cached for 20 seconds. If a backend fails before replying, the request moves to the next one. That applies to streaming too.
+- `serving/cpu-backup/`: a ready-to-deploy Space (Dockerfile + README).
+- `backend` (`gpu` or `cpu-backup`) in chat responses (`x_atlasbridge.backend`), translate responses, usage logs, the CSV export, and `by_backend` in the admin report.
+- `/health` reports each backend's state and which one is active. The playground shows an amber "N-ATLaS online (CPU backup, slower)" status.
+- `keep-awake` GitHub Action that pings the gateway and backup every 10 minutes.
+- Settings: `UPSTREAM_FALLBACK_URL`, `UPSTREAM_FALLBACK_KEY`, `FALLBACK_MAX_TOKENS` (default 256).
+- Tests for failover (GPU down → CPU backup, streaming and non-streaming) and for the database migration (23 tests).
+
+### Changed
+- The gateway sends `repeat_penalty` alongside `repetition_penalty`, so both the transformers and llama.cpp servers apply the model-card value of 1.12.
+
+### Upgrade
+- Existing databases gain a `backend` column automatically on startup. No manual steps are needed.
+
+---
+
 ## v2.0.0 — 10 October 2026
 
 **Replies in the right language.** Version 2 makes AtlasBridge dependable for multilingual apps. N-ATLaS now answers in the language the user actually wrote in, and developers can set the reply language themselves.
@@ -32,7 +53,7 @@ All notable changes to AtlasBridge are recorded here. Versions follow [Semantic 
 
 ### Upgrade
 - Gateway: redeploy (Render redeploys automatically on push). No database changes.
-- SDK: `pip install -U "git+https://github.com/<you>/atlasbridge#subdirectory=sdk"`
+- SDK: `pip install -U "git+https://github.com/Kingsmichaei/atlasbridge#subdirectory=sdk"`
 
 ---
 

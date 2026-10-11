@@ -15,6 +15,10 @@ class Settings:
     upstream_key: str = field(default_factory=lambda: os.environ.get("UPSTREAM_KEY", ""))
     upstream_model: str = field(default_factory=lambda: os.environ.get("UPSTREAM_MODEL", "n-atlas"))
     upstream_timeout: float = field(default_factory=lambda: float(os.environ.get("UPSTREAM_TIMEOUT", "300")))
+    # Always-on CPU backup (llama.cpp serving the N-ATLaS Q4_K_M GGUF), used when the GPU server is down.
+    fallback_url: str = field(default_factory=lambda: os.environ.get("UPSTREAM_FALLBACK_URL", "").rstrip("/"))
+    fallback_key: str = field(default_factory=lambda: os.environ.get("UPSTREAM_FALLBACK_KEY", ""))
+    fallback_max_tokens: int = field(default_factory=lambda: int(os.environ.get("FALLBACK_MAX_TOKENS", "256")))
     # Return canned replies instead of calling the model (local development / CI).
     mock_upstream: bool = field(default_factory=lambda: _bool("MOCK_UPSTREAM"))
 

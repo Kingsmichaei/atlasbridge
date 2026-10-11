@@ -45,6 +45,7 @@ class UsageLog(Base):
     prompt_preview: Mapped[str] = mapped_column(Text, default="")
     reply_preview: Mapped[str] = mapped_column(Text, default="")
     error: Mapped[str] = mapped_column(Text, default="")
+    backend: Mapped[str] = mapped_column(String(20), default="")  # "gpu", "cpu-backup", "mock"
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, index=True)
 
 
@@ -68,3 +69,14 @@ SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
 
 def init_db() -> None:
     Base.metadata.create_all(engine)
+    _migrate()
+
+
+def _migrate() -> None:
+    """Add columns introduced after v2.0.0 to existing databases (create_all doesn't alter tables)."""
+    from sqlalchemy import inspect, text
+
+    cols = {c["name"] for c in inspect(engine).get_columns("usage_logs")}
+    if "backend" not in cols:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE usage_logs ADD COLUMN backend VARCHAR(20) DEFAULT ''"))

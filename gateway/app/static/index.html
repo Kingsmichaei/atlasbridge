@@ -36,7 +36,7 @@ header .wrap{display:flex;align-items:center;gap:12px;min-height:60px;flex-wrap:
 .mark{width:28px;height:28px;border-radius:8px;background:var(--green);display:grid;place-items:center;color:var(--green-ink);font-size:15px;font-weight:700}
 .status{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
 .dot{width:9px;height:9px;border-radius:50%;background:var(--muted)}
-.dot.ok{background:var(--green)} .dot.bad{background:var(--err)}
+.dot.ok{background:var(--green)} .dot.bad{background:var(--err)} .dot.warn{background:var(--warn)}
 .hero{padding:36px 0 20px}
 .hero h1{font-size:clamp(26px,4vw,38px);line-height:1.15;margin:0 0 10px;letter-spacing:-.02em}
 .hero p{color:var(--muted);max-width:640px;margin:0}
@@ -212,8 +212,14 @@ async function checkStatus(){
     const h = await (await fetch("/health")).json();
     const s = h.upstream?.status;
     const ok = s === "ok";
-    $("dot").className = "dot " + (ok ? "ok" : "bad");
-    $("statusText").textContent = ok ? (h.upstream.mode === "mock" ? "Mock mode" : "N-ATLaS online") : "Model offline";
+    const backup = h.upstream?.backend === "cpu-backup";
+    $("dot").className = "dot " + (ok ? (backup ? "warn" : "ok") : "bad");
+    $("statusText").textContent = !ok ? "Model offline"
+      : h.upstream.mode === "mock" ? "Mock mode"
+      : backup ? "N-ATLaS online (CPU backup, slower)" : "N-ATLaS online";
+    $("statusText").parentElement.title = backup
+      ? "The fast GPU server is off, so replies come from the always-on CPU backup and can take up to a minute."
+      : "Is the N-ATLaS model online right now?";
   }catch{ $("dot").className = "dot bad"; $("statusText").textContent = "Gateway unreachable"; }
 }
 checkStatus(); setInterval(checkStatus, 60000);
@@ -319,7 +325,7 @@ reply = client.chat.completions.create(
 )
 print(reply.choices[0].message.content)`;
   $("c2").textContent =
-`# pip install "git+https://github.com/YOUR_GITHUB/atlasbridge#subdirectory=sdk"
+`# pip install "git+https://github.com/Kingsmichaei/atlasbridge#subdirectory=sdk"
 from atlasbridge import AtlasBridge
 
 ab = AtlasBridge(api_key="${k}", base_url="${location.origin}")

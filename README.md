@@ -8,13 +8,16 @@ N-ATLaS is open, but using it today means downloading an 8B-parameter model, fin
 
 Built for the National AI Innovation Challenge 2026, Problem Statement 1 (Developer Infrastructure).
 
-**Current version: v2.0.0.** See [CHANGELOG.md](CHANGELOG.md).
+**Current version: v2.1.0.**
+
+**Live:** https://atlasbridge.onrender.com · **Repo:** https://github.com/Kingsmichaei/atlasbridge See [CHANGELOG.md](CHANGELOG.md).
 
 ## What's included
 
 | Part | Path | What it does |
 |---|---|---|
 | Serving notebook | `serving/atlasbridge_serve_kaggle.ipynb` | Runs `NCAIR1/N-ATLaS` on a GPU (Kaggle 2×T4) as an OpenAI-compatible server and exposes it through a secure tunnel |
+| CPU backup | `serving/cpu-backup/` | Always-on Hugging Face Space: N-ATLaS Q4_K_M GGUF on llama.cpp. The gateway fails over to it automatically when the GPU is off |
 | Gateway | `gateway/` | FastAPI service: API keys, rate limits, streaming chat, translation, language detection, usage logging and a validation report |
 | Python SDK + CLI | `sdk/` | `pip install` client: `chat`, `stream`, `translate`, `detect_language`, multi-turn `Conversation`, `atlasbridge` CLI |
 | Playground | `gateway/app/static/index.html` | Web page served at `/`: beta signup, chat in all four languages, translate, detect, and copy-paste code for each language |
@@ -26,8 +29,10 @@ Your app ──(OpenAI SDK / AtlasBridge SDK / HTTP)──▶ AtlasBridge gatewa
                                                      │  API keys · rate limits · usage logs (Postgres)
                                                      │  N-ATLaS prompt defaults · translate/detect tasks
                                                      ▼
-                                     N-ATLaS inference server (GPU, OpenAI-compatible)
-                                     NCAIR1/N-ATLaS, Llama-3 8B, fp16, Llama-3 chat template
+              ┌──────────────────────────────────────┴──────────────────────────────┐
+              ▼ primary (when healthy)                               ▼ automatic fallback
+  N-ATLaS GPU server (Kaggle 2×T4)                      N-ATLaS CPU backup (HF Space, always on)
+  NCAIR1/N-ATLaS, fp16, transformers                    N-ATLaS Q4_K_M GGUF, llama.cpp, 2 vCPU
 ```
 
 **Language handling.** N-ATLaS is an 8B model, and left to itself it sometimes answers in the wrong Nigerian language, especially in conversations that switch languages. The gateway detects the language of each message offline (97% on a held-out set of everyday phrases typed with or without diacritics) and names the reply language in the system prompt. Developers can override it with `language`.
@@ -46,7 +51,7 @@ print(r.choices[0].message.content)
 ```
 
 ```python
-# pip install "git+https://github.com/<you>/atlasbridge#subdirectory=sdk"
+# pip install "git+https://github.com/Kingsmichaei/atlasbridge#subdirectory=sdk"
 from atlasbridge import AtlasBridge
 
 ab = AtlasBridge(api_key="ab_...", base_url="https://<gateway>")
@@ -85,8 +90,10 @@ cd gateway
 pip install -r requirements.txt
 cp .env.example .env    # set UPSTREAM_URL, UPSTREAM_KEY, ADMIN_TOKEN (or MOCK_UPSTREAM=1 to develop with no GPU)
 uvicorn app.main:app --reload
-pytest -q               # 19 tests: auth, streaming, OpenAI-SDK compatibility, proxy path, rate limits, report
+pytest -q               # 23 tests: auth, streaming, OpenAI-SDK compatibility, proxy path, GPU→CPU failover, rate limits, report, language ID
 ```
+
+**3. CPU backup (optional, recommended).** Create a Hugging Face Space (SDK: **Docker**, hardware: free **CPU basic**) and upload `serving/cpu-backup/Dockerfile` and `README.md`. Add the Space secret `LLAMA_API_KEY`. The first start downloads about 4.9 GB and takes a few minutes. Then set `UPSTREAM_FALLBACK_URL=https://<user>-<space>.hf.space` and `UPSTREAM_FALLBACK_KEY` on the gateway. The `keep-awake` GitHub Action pings the gateway and the Space every 10 minutes: set the repository variables `GATEWAY_URL` and `BACKUP_URL`.
 
 **Deploy:** in Render, choose New → Blueprint and point it at this repo. `render.yaml` creates the web service and a Postgres database. Set `UPSTREAM_URL` and `UPSTREAM_KEY` in the dashboard.
 
@@ -98,7 +105,7 @@ Every request is logged with the tester, endpoint, detected language, latency, t
 
 - Model quality comes from N-ATLaS v1. Its own human evaluation scores Yoruba lowest (2.69/5), against Hausa 3.98, Igbo 3.87 and English 4.21. Translation and language ID inherit this.
 - Nigerian Pidgin isn't an officially supported N-ATLaS language.
-- The free GPU demo setup isn't always on. For production the same server runs on any persistent GPU host.
+- The GPU server runs on free Kaggle sessions, so it isn't always on. When it's off, the gateway falls back to the CPU backup, which is always on but slower (2–5 tokens/s, replies capped at 256 tokens). It uses a community 4-bit quantisation of N-ATLaS, so its answers can differ slightly from the fp16 model. Every response reports which `backend` served it.
 - The N-ATLaS licence limits deployments to 1,000 monthly active end users without a commercial licence from Awarri. AtlasBridge is a beta under that cap.
 
 ## Licence and attribution
