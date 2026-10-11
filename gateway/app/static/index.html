@@ -5,7 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AtlasBridge</title>
 <meta name="description" content="OpenAI-compatible developer gateway for N-ATLaS — English, Hausa, Igbo and Yoruba.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230a7a45'/%3E%3Ctext x='16' y='22' font-size='18' font-family='Arial' font-weight='700' fill='white' text-anchor='middle'%3EA%3C/text%3E%3C/svg%3E">
+
+<link rel="icon" type="image/png" sizes="96x96" href="/static/brand/favicon-96x96.png">
+<link rel="icon" href="/static/brand/favicon.svg" type="image/svg+xml" sizes="any">
+<link rel="manifest" href="/static/brand/site.webmanifest">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="/static/brand/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="/static/brand/apple-touch-icon.png">
+<meta property="og:image" content="/static/brand/logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -33,6 +41,7 @@ a{color:var(--green)}
 header{border-bottom:1px solid var(--line);background:var(--panel)}
 header .wrap{display:flex;align-items:center;gap:12px;min-height:60px;flex-wrap:wrap}
 .logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;letter-spacing:-.01em}
+.mark-img{width:28px;height:28px;border-radius:8px;object-fit:contain;display:block}
 .mark{width:28px;height:28px;border-radius:8px;background:var(--green);display:grid;place-items:center;color:var(--green-ink);font-size:15px;font-weight:700}
 .status{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
 .dot{width:9px;height:9px;border-radius:50%;background:var(--muted)}
@@ -80,7 +89,8 @@ footer{border-top:1px solid var(--line);padding:20px 0 30px;color:var(--muted);f
 <body>
 <header>
   <div class="wrap">
-    <div class="logo"><div class="mark" aria-hidden="true">A</div>AtlasBridge</div>
+    <div class="logo"><img class="mark-img" src="/static/brand/logo.png" alt="" width="28" height="28"
+      onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'mark',textContent:'A'}))">AtlasBridge</div>
     <span class="small">for N-ATLaS</span>
     <div class="status" title="Is the N-ATLaS model online right now?"><span class="dot" id="dot"></span><span id="statusText">Checking model…</span></div>
   </div>

@@ -31,7 +31,8 @@ from typing import Literal
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Response, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 
@@ -216,6 +217,14 @@ class KeyCreate(BaseModel):
 # ---------------- public endpoints ----------------
 
 _STATIC = Path(__file__).parent / "static"
+# Logos and favicons live in app/static/brand/ and are served at /static/brand/...
+app.mount("/static", StaticFiles(directory=_STATIC), name="static")
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    ico = _STATIC / "brand" / "favicon.ico"
+    return FileResponse(ico) if ico.exists() else Response(status_code=204)
 
 
 @app.get("/", include_in_schema=False)
