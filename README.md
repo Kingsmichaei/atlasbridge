@@ -1,3 +1,5 @@
+<p><img src="gateway/app/static/brand/wordmark.png" alt="AtlasBridge" height="56"></p>
+
 # AtlasBridge
 
 **An OpenAI-compatible developer gateway and Python SDK for N-ATLaS, Nigeria's multilingual LLM (English, Hausa, Igbo, Yoruba).**
@@ -17,7 +19,7 @@ Built for the National AI Innovation Challenge 2026, Problem Statement 1 (Develo
 | Part | Path | What it does |
 |---|---|---|
 | Serving notebook | `serving/atlasbridge_serve_kaggle.ipynb` | Runs `NCAIR1/N-ATLaS` on a GPU (Kaggle 2×T4) as an OpenAI-compatible server and exposes it through a secure tunnel |
-| CPU backup | `serving/cpu-backup/` | Always-on Hugging Face Space: N-ATLaS Q4_K_M GGUF on llama.cpp. The gateway fails over to it automatically when the GPU is off |
+| CPU backup (optional) | `serving/cpu-backup/` | Docker image running the N-ATLaS Q4_K_M GGUF on llama.cpp. When configured, the gateway fails over to it automatically when the GPU is off |
 | Gateway | `gateway/` | FastAPI service: API keys, rate limits, streaming chat, translation, language detection, usage logging and a validation report |
 | Python SDK + CLI | `sdk/` | `pip install` client: `chat`, `stream`, `translate`, `detect_language`, multi-turn `Conversation`, `atlasbridge` CLI |
 | Playground | `gateway/app/static/index.html` | Web page served at `/`: beta signup, chat in all four languages, translate, detect, and copy-paste code for each language |
@@ -31,7 +33,7 @@ Your app ──(OpenAI SDK / AtlasBridge SDK / HTTP)──▶ AtlasBridge gatewa
                                                      ▼
               ┌──────────────────────────────────────┴──────────────────────────────┐
               ▼ primary (when healthy)                               ▼ automatic fallback
-  N-ATLaS GPU server (Kaggle 2×T4)                      N-ATLaS CPU backup (HF Space, always on)
+  N-ATLaS GPU server (Kaggle 2×T4)                      N-ATLaS CPU backup (optional, Docker)
   NCAIR1/N-ATLaS, fp16, transformers                    N-ATLaS Q4_K_M GGUF, llama.cpp, 2 vCPU
 ```
 
@@ -93,7 +95,7 @@ uvicorn app.main:app --reload
 pytest -q               # 23 tests: auth, streaming, OpenAI-SDK compatibility, proxy path, GPU→CPU failover, rate limits, report, language ID
 ```
 
-**3. CPU backup (optional, recommended).** Create a Hugging Face Space (SDK: **Docker**, hardware: free **CPU basic**) and upload `serving/cpu-backup/Dockerfile` and `README.md`. Add the Space secret `LLAMA_API_KEY`. The first start downloads about 4.9 GB and takes a few minutes. Then set `UPSTREAM_FALLBACK_URL=https://<user>-<space>.hf.space` and `UPSTREAM_FALLBACK_KEY` on the gateway. The `keep-awake` GitHub Action pings the gateway and the Space every 10 minutes: set the repository variables `GATEWAY_URL` and `BACKUP_URL`.
+**3. CPU backup (optional).** Run `serving/cpu-backup/Dockerfile` on any Docker host with about 8 GB RAM (a VPS, a cloud VM, or a paid Hugging Face Space; Docker Spaces need PRO). Set `LLAMA_API_KEY` there, then set `UPSTREAM_FALLBACK_URL` and `UPSTREAM_FALLBACK_KEY` on the gateway. The `keep-awake` GitHub Action pings the gateway (and the backup, if set) every 10 minutes: set the repository variables `GATEWAY_URL` and optionally `BACKUP_URL`.
 
 **Deploy:** in Render, choose New → Blueprint and point it at this repo. `render.yaml` creates the web service and a Postgres database. Set `UPSTREAM_URL` and `UPSTREAM_KEY` in the dashboard.
 
@@ -105,7 +107,7 @@ Every request is logged with the tester, endpoint, detected language, latency, t
 
 - Model quality comes from N-ATLaS v1. Its own human evaluation scores Yoruba lowest (2.69/5), against Hausa 3.98, Igbo 3.87 and English 4.21. Translation and language ID inherit this.
 - Nigerian Pidgin isn't an officially supported N-ATLaS language.
-- The GPU server runs on free Kaggle sessions, so it isn't always on. When it's off, the gateway falls back to the CPU backup, which is always on but slower (2–5 tokens/s, replies capped at 256 tokens). It uses a community 4-bit quantisation of N-ATLaS, so its answers can differ slightly from the fp16 model. Every response reports which `backend` served it.
+- The GPU server runs on free Kaggle sessions, so it isn't always on. An optional CPU backup can take over automatically (built and tested, not deployed in the hosted demo). It's slower (2–5 tokens/s, replies capped at 256 tokens) and uses a community 4-bit quantisation, so its answers can differ slightly from the fp16 model. Every response reports which `backend` served it.
 - The N-ATLaS licence limits deployments to 1,000 monthly active end users without a commercial licence from Awarri. AtlasBridge is a beta under that cap.
 
 ## Contributing

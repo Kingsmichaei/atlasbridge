@@ -8,11 +8,11 @@ All notable changes to AtlasBridge are recorded here. Versions follow [Semantic 
 
 ## v2.1.0 — 11 October 2026
 
-**Always on.** AtlasBridge now keeps answering when the free GPU server is off.
+**Resilience.** AtlasBridge can now keep answering when the GPU server is off, by failing over to an optional CPU backup.
 
 ### Added
-- **Automatic CPU fallback.** The gateway sends requests to the fast GPU server (N-ATLaS fp16) while it is healthy. When it isn't, it switches to an always-on CPU backup: N-ATLaS Q4_K_M GGUF (`tosinamuda/N-ATLaS-GGUF`, quantised from `NCAIR1/N-ATLaS`) served by llama.cpp on a free Hugging Face Space. Health checks are cached for 20 seconds. If a backend fails before replying, the request moves to the next one. That applies to streaming too.
-- `serving/cpu-backup/`: a ready-to-deploy Space (Dockerfile + README).
+- **Automatic CPU fallback.** The gateway sends requests to the fast GPU server (N-ATLaS fp16) while it is healthy. When it isn't, it switches to a CPU backup if one is configured: N-ATLaS Q4_K_M GGUF (`tosinamuda/N-ATLaS-GGUF`, quantised from `NCAIR1/N-ATLaS`) served by llama.cpp on a free Hugging Face Space. Health checks are cached for 20 seconds. If a backend fails before replying, the request moves to the next one. That applies to streaming too.
+- `serving/cpu-backup/`: a ready-to-deploy Docker image (Dockerfile + README). It runs on any Docker host with about 8 GB RAM; Hugging Face Docker Spaces now need a paid plan.
 - `backend` (`gpu` or `cpu-backup`) in chat responses (`x_atlasbridge.backend`), translate responses, usage logs, the CSV export, and `by_backend` in the admin report.
 - `/health` reports each backend's state and which one is active. The playground shows an amber "N-ATLaS online (CPU backup, slower)" status.
 - `keep-awake` GitHub Action that pings the gateway and backup every 10 minutes.

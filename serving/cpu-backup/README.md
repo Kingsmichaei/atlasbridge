@@ -10,9 +10,9 @@ pinned: false
 
 # AtlasBridge: N-ATLaS CPU backup
 
-An always-on, CPU-only N-ATLaS server for [AtlasBridge](https://github.com/Kingsmichaei/atlasbridge). It serves `tosinamuda/N-ATLaS-GGUF` (Q4_K_M, a 4-bit quantisation of `NCAIR1/N-ATLaS`) with llama.cpp's OpenAI-compatible server.
+A CPU-only N-ATLaS server for [AtlasBridge](https://github.com/Kingsmichaei/atlasbridge). It serves `tosinamuda/N-ATLaS-GGUF` (Q4_K_M, a 4-bit quantisation of `NCAIR1/N-ATLaS`) with llama.cpp's OpenAI-compatible server.
 
-The AtlasBridge gateway uses the fast GPU server when it's online and switches to this backup automatically when it isn't. Replies are slower here (roughly 2–5 tokens per second on 2 vCPUs), so the gateway caps backup replies at 256 tokens.
+The AtlasBridge gateway uses the fast GPU server when it's online and switches to this backup automatically when it isn't. Run it on any Docker host with about 8 GB RAM. On Hugging Face, Docker Spaces need a paid plan. Replies are slower here (roughly 2–5 tokens per second on 2 vCPUs), so the gateway caps backup replies at 256 tokens.
 
 **Endpoints:** `GET /health`, `POST /v1/chat/completions` (Bearer `LLAMA_API_KEY`).
 

@@ -1,8 +1,8 @@
-# AtlasBridge CPU backup: N-ATLaS (Q4_K_M GGUF) served by llama.cpp on a free Hugging Face CPU Space.
+# AtlasBridge CPU backup: N-ATLaS (Q4_K_M GGUF) served by llama.cpp. Runs on any Docker host with ~8 GB RAM.
 # OpenAI-compatible API on port 7860. Set the Space secret LLAMA_API_KEY to require a bearer key.
 FROM ghcr.io/ggml-org/llama.cpp:server
 
-# Spaces run as a non-root user; keep the model download in a writable place.
+# Keep the model download in a writable place (some hosts run containers as a non-root user).
 ENV LLAMA_CACHE=/tmp/llama-cache
 EXPOSE 7860
 
