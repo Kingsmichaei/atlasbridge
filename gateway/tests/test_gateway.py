@@ -160,3 +160,29 @@ def test_language_eval_set():
     total = sum(len(v) for v in CASES.values())
     hits = sum(language.detect(t)["language"] == l for l, xs in CASES.items() for t in xs)
     assert hits / total >= 0.95
+
+
+def test_default_prompt_states_identity():
+    from app.main import _prepare_messages
+    out, _, _ = _prepare_messages([{"role": "user", "content": "What model are you?"}], "auto")
+    sys_prompt = out[0]["content"]
+    assert "N-ATLaS" in sys_prompt and "Awarri" in sys_prompt and "not made by OpenAI" in sys_prompt
+
+
+def test_translate_prompt_does_not_answer(client, key, monkeypatch):
+    """A question sent to /v1/translate must be framed as text to translate, not a question to answer."""
+    from app import upstream
+    seen = {}
+    real = upstream.complete
+
+    async def spy(payload):
+        seen["messages"] = payload["messages"]
+        return await real(payload)
+
+    monkeypatch.setattr(upstream, "complete", spy)
+    r = client.post("/v1/translate", headers=auth(key),
+                    json={"text": "What is the name of the Nigerian president", "target": "ig", "source": "en"})
+    assert r.status_code == 200
+    system, user = seen["messages"][0]["content"], seen["messages"][1]["content"]
+    assert "never answer it" in system
+    assert user.startswith("Translate this English text into Igbo:")

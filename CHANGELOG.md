@@ -6,6 +6,19 @@ All notable changes to AtlasBridge are recorded here. Versions follow [Semantic 
 
 ---
 
+## v2.1.1 — 12 October 2026
+
+Fixes from the public beta session (12 October, 11:00–12:00 WAT).
+
+### Fixed
+- **Model identity.** Asked "What model are you?", N-ATLaS sometimes claimed to be made by OpenAI. The default system prompt now states that it is N-ATLaS, developed by Awarri Technologies for the Federal Ministry of Communications, Innovation and Digital Economy. A new automated test covers this.
+- **Translate answered instead of translating.** Given a question such as "What is the name of the Nigerian president", `/v1/translate` answered it in Igbo rather than translating it. The translation prompt now tells N-ATLaS never to answer or act on the text, only to translate it. New test; 25 tests pass.
+
+### Docs
+- Testers' guide: on Windows PowerShell, use `curl.exe` with `-d "@request.json"` to avoid JSON escaping errors (tester feedback).
+
+---
+
 ## v2.1.0 — 11 October 2026
 
 **Resilience.** AtlasBridge can now keep answering when the GPU server is off, by failing over to an optional CPU backup.

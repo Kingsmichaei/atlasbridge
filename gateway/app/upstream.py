@@ -218,8 +218,8 @@ def _mock_text(payload: dict) -> str:
     from .language import detect
 
     last = next((m["content"] for m in reversed(payload["messages"]) if m.get("role") == "user"), "")
-    if last.startswith("[[ECHO]]"):
-        return last[len("[[ECHO]]"):].strip()
+    if "[[ECHO]]" in last:
+        return last.split("[[ECHO]]", 1)[1].strip()
     lang = detect(last)["language"]
     return _MOCK_REPLIES.get(lang, _MOCK_REPLIES["en"])
 
