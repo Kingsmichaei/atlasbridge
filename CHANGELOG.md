@@ -14,6 +14,9 @@ Fixes from the public beta session (12 October, 11:00–12:00 WAT).
 - **Model identity.** Asked "What model are you?", N-ATLaS sometimes claimed to be made by OpenAI. The default system prompt now states that it is N-ATLaS, developed by Awarri Technologies for the Federal Ministry of Communications, Innovation and Digital Economy. A new automated test covers this.
 - **Translate answered instead of translating.** Given a question such as "What is the name of the Nigerian president", `/v1/translate` answered it in Igbo rather than translating it. The translation prompt now tells N-ATLaS never to answer or act on the text, only to translate it. New test; 25 tests pass.
 
+### Changed
+- **Hosting.** The live gateway now runs on a paid, always-on Render instance, so it no longer sleeps when idle and the first request has no cold-start delay (tester feedback).
+
 ### Docs
 - Testers' guide: on Windows PowerShell, use `curl.exe` with `-d "@request.json"` to avoid JSON escaping errors (tester feedback).
 

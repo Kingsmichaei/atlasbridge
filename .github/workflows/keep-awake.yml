@@ -1,4 +1,5 @@
 # Free hosts sleep when idle: Render after 15 min, Hugging Face Spaces after 48 h.
+# Not needed for a paid Render instance (the live gateway), but harmless.
 # This pings both so the gateway and the CPU backup stay reachable.
 # Set the repository variables GATEWAY_URL and BACKUP_URL (Settings → Secrets and variables → Actions → Variables).
 name: keep-awake
