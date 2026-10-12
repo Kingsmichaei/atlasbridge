@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 250" width="1280" height="250" role="img" aria-labelledby="t d">
+  <title id="t">From zero to N-ATLaS in five steps</title>
+  <desc id="d">Get a key, try the playground, point your OpenAI SDK at AtlasBridge, pick a language, ship it.</desc>
+  <rect width="1280" height="250" rx="24" fill="#f2f7f4"/>
+  <line x1="168" y1="92" x2="1112" y2="92" stroke="#b9dcc8" stroke-width="4"/>
+  <g font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" text-anchor="middle">
+    <g transform="translate(168 0)">
+      <circle cy="92" r="34" fill="#0a7a45"/><text y="103" font-size="30" font-weight="800" fill="#ffffff">1</text>
+      <text y="160" font-size="19" font-weight="700" fill="#14201a">Get a key</text>
+      <text y="186" font-size="14" fill="#56645c">Join the beta on the</text>
+      <text y="206" font-size="14" fill="#56645c">playground</text>
+    </g>
+    <g transform="translate(404 0)">
+      <circle cy="92" r="34" fill="#0a7a45"/><text y="103" font-size="30" font-weight="800" fill="#ffffff">2</text>
+      <text y="160" font-size="19" font-weight="700" fill="#14201a">Try it</text>
+      <text y="186" font-size="14" fill="#56645c">Chat, translate and detect</text>
+      <text y="206" font-size="14" fill="#56645c">in the browser</text>
+    </g>
+    <g transform="translate(640 0)">
+      <circle cy="92" r="34" fill="#0a7a45"/><text y="103" font-size="30" font-weight="800" fill="#ffffff">3</text>
+      <text y="160" font-size="19" font-weight="700" fill="#14201a">Change base_url</text>
+      <text y="186" font-size="14" fill="#56645c">Any OpenAI SDK, or</text>
+      <text y="206" font-size="14" fill="#56645c">pip install the AtlasBridge SDK</text>
+    </g>
+    <g transform="translate(876 0)">
+      <circle cy="92" r="34" fill="#0a7a45"/><text y="103" font-size="30" font-weight="800" fill="#ffffff">4</text>
+      <text y="160" font-size="19" font-weight="700" fill="#14201a">Pick a language</text>
+      <text y="186" font-size="14" fill="#56645c">auto-detect, or force</text>
+      <text y="206" font-size="14" fill="#56645c">en, ha, ig or yo</text>
+    </g>
+    <g transform="translate(1112 0)">
+      <circle cy="92" r="34" fill="#06331f"/>
+      <path d="M-13 92 l9 9 l17 -19" fill="none" stroke="#f2b631" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+      <text y="160" font-size="19" font-weight="700" fill="#14201a">Ship it</text>
+      <text y="186" font-size="14" fill="#56645c">Track every request</text>
+      <text y="206" font-size="14" fill="#56645c">at /v1/usage</text>
+    </g>
+  </g>
+</svg>

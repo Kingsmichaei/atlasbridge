@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 480" width="1280" height="480" role="img" aria-labelledby="t d">
+  <title id="t">How AtlasBridge works</title>
+  <desc id="d">Your app calls the AtlasBridge gateway, which checks the key, sets the reply language, logs the request and forwards it to N-ATLaS on GPU, with an optional CPU backup.</desc>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#0a7a45"/></marker>
+    <marker id="g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto"><path d="M0 0L10 5L0 10z" fill="#8aa596"/></marker>
+  </defs>
+  <rect width="1280" height="480" rx="24" fill="#f2f7f4"/>
+  <g font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" text-anchor="middle">
+
+    <!-- your app -->
+    <rect x="40" y="150" width="240" height="150" rx="16" fill="#ffffff" stroke="#d4e4da" stroke-width="1.5"/>
+    <text x="160" y="190" font-size="20" font-weight="700" fill="#14201a">Your app</text>
+    <text x="160" y="216" font-size="14" fill="#56645c">web, mobile, bot or script</text>
+    <rect x="60" y="234" width="200" height="48" rx="10" fill="#e3f2ea"/>
+    <text x="160" y="254" font-size="13" font-weight="600" fill="#0a7a45">OpenAI SDK · AtlasBridge SDK</text>
+    <text x="160" y="272" font-size="13" font-weight="600" fill="#0a7a45">LangChain · curl</text>
+
+    <line x1="284" y1="208" x2="364" y2="208" stroke="#0a7a45" stroke-width="2.5" marker-end="url(#a)"/>
+    <text x="324" y="196" font-size="12" fill="#56645c">request</text>
+    <line x1="364" y1="244" x2="284" y2="244" stroke="#0a7a45" stroke-width="2.5" marker-end="url(#a)"/>
+    <text x="324" y="266" font-size="12" fill="#56645c">reply</text>
+
+    <!-- gateway -->
+    <rect x="370" y="40" width="430" height="400" rx="20" fill="#06331f"/>
+    <text x="585" y="84" font-size="22" font-weight="800" fill="#ffffff">AtlasBridge gateway</text>
+    <text x="585" y="108" font-size="14" fill="#a9d3bc">atlasbridge.onrender.com/v1 · FastAPI + Postgres</text>
+    <g font-size="15" font-weight="600" fill="#ffffff">
+      <rect x="400" y="130" width="370" height="46" rx="10" fill="#0a5c37"/>
+      <text x="585" y="159">Checks your API key and rate limit</text>
+      <rect x="400" y="186" width="370" height="46" rx="10" fill="#0a5c37"/>
+      <text x="585" y="215">Detects the language, sets the reply language</text>
+      <rect x="400" y="242" width="370" height="46" rx="10" fill="#0a5c37"/>
+      <text x="585" y="271">Chat · streaming · translate · detect</text>
+      <rect x="400" y="298" width="370" height="46" rx="10" fill="#0a5c37"/>
+      <text x="585" y="327">Logs every request for the usage report</text>
+      <rect x="400" y="354" width="370" height="46" rx="10" fill="#0a5c37"/>
+      <text x="585" y="383">Fails over from GPU to CPU backup</text>
+    </g>
+
+    <!-- n-atlas gpu -->
+    <line x1="804" y1="150" x2="904" y2="150" stroke="#0a7a45" stroke-width="2.5" marker-end="url(#a)"/>
+    <text x="854" y="138" font-size="12" fill="#56645c">primary</text>
+    <rect x="910" y="70" width="330" height="170" rx="16" fill="#ffffff" stroke="#0a7a45" stroke-width="2.5"/>
+    <text x="1075" y="112" font-size="22" font-weight="800" fill="#0a7a45">N-ATLaS</text>
+    <text x="1075" y="138" font-size="14" fill="#56645c">NCAIR1/N-ATLaS · fp16 on GPU</text>
+    <text x="1075" y="160" font-size="14" fill="#56645c">official weights and chat template</text>
+    <rect x="950" y="180" width="250" height="38" rx="19" fill="#e3f2ea"/>
+    <text x="1075" y="205" font-size="14" font-weight="600" fill="#0a7a45">English · Hausa · Igbo · Yoruba</text>
+
+    <!-- cpu backup -->
+    <path d="M804 360 H904" stroke="#8aa596" stroke-width="2" stroke-dasharray="6 6" fill="none" marker-end="url(#g)"/>
+    <text x="854" y="348" font-size="12" fill="#56645c">if GPU is down</text>
+    <rect x="910" y="300" width="330" height="120" rx="16" fill="none" stroke="#8aa596" stroke-width="2" stroke-dasharray="7 6"/>
+    <text x="1075" y="342" font-size="18" font-weight="700" fill="#3c4a42">CPU backup (optional)</text>
+    <text x="1075" y="368" font-size="14" fill="#56645c">N-ATLaS Q4_K_M GGUF · llama.cpp</text>
+    <text x="1075" y="390" font-size="14" fill="#56645c">slower, any 8 GB Docker host</text>
+
+    <text x="640" y="466" font-size="13" fill="#56645c">Every response says which backend served it: "backend": "gpu" or "cpu-backup".</text>
+  </g>
+</svg>

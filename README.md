@@ -1,4 +1,16 @@
-<p><img src="gateway/app/static/brand/wordmark.png" alt="AtlasBridge" height="56"></p>
+<p align="center">
+  <img src="docs/images/banner.svg" alt="AtlasBridge: N-ATLaS for every developer, in Hausa, Igbo, Yoruba and English" width="100%">
+</p>
+
+<p align="center">
+  <a href="https://atlasbridge.onrender.com"><img alt="Live demo" src="https://img.shields.io/badge/live-atlasbridge.onrender.com-0a7a45"></a>
+  <img alt="Version 2.1.1" src="https://img.shields.io/badge/version-2.1.1-06331f">
+  <img alt="25 tests passing" src="https://img.shields.io/badge/tests-25%20passing-12a463">
+  <img alt="OpenAI-compatible" src="https://img.shields.io/badge/API-OpenAI--compatible-0a7a45">
+  <a href="https://huggingface.co/NCAIR1/N-ATLaS"><img alt="Model: N-ATLaS" src="https://img.shields.io/badge/model-N--ATLaS-f2b631"></a>
+  <a href="LICENSE"><img alt="MIT licence" src="https://img.shields.io/badge/licence-MIT-06331f"></a>
+  <a href="CONTRIBUTING.md"><img alt="Contributions welcome" src="https://img.shields.io/badge/contributions-welcome-12a463"></a>
+</p>
 
 # AtlasBridge
 
@@ -10,9 +22,13 @@ N-ATLaS is open, but using it today means downloading an 8B-parameter model, fin
 
 Built for the National AI Innovation Challenge 2026, Problem Statement 1 (Developer Infrastructure).
 
-**Current version: v2.1.0.**
+**Current version: v2.1.1.**
 
-**Live:** https://atlasbridge.onrender.com · **Repo:** https://github.com/Kingsmichaei/atlasbridge See [CHANGELOG.md](CHANGELOG.md).
+**Live:** https://atlasbridge.onrender.com · **Repo:** https://github.com/Kingsmichaei/atlasbridge · See [CHANGELOG.md](CHANGELOG.md).
+
+<p align="center">
+  <img src="docs/images/quick-start.svg" alt="Five steps: get a key, try it in the playground, change base_url, pick a language, ship it" width="100%">
+</p>
 
 ## What's included
 
@@ -26,18 +42,15 @@ Built for the National AI Innovation Challenge 2026, Problem Statement 1 (Develo
 
 ## Architecture
 
-```
-Your app ──(OpenAI SDK / AtlasBridge SDK / HTTP)──▶ AtlasBridge gateway (FastAPI, Render)
-                                                     │  API keys · rate limits · usage logs (Postgres)
-                                                     │  N-ATLaS prompt defaults · translate/detect tasks
-                                                     ▼
-              ┌──────────────────────────────────────┴──────────────────────────────┐
-              ▼ primary (when healthy)                               ▼ automatic fallback
-  N-ATLaS GPU server (Kaggle 2×T4)                      N-ATLaS CPU backup (optional, Docker)
-  NCAIR1/N-ATLaS, fp16, transformers                    N-ATLaS Q4_K_M GGUF, llama.cpp, 2 vCPU
-```
+<p align="center">
+  <img src="docs/images/architecture.svg" alt="Your app calls the AtlasBridge gateway, which checks the key, sets the reply language and logs the request, then forwards it to N-ATLaS on GPU, with an optional CPU backup" width="100%">
+</p>
 
 **Language handling.** N-ATLaS is an 8B model, and left to itself it sometimes answers in the wrong Nigerian language, especially in conversations that switch languages. The gateway detects the language of each message offline (97% on a held-out set of everyday phrases typed with or without diacritics) and names the reply language in the system prompt. Developers can override it with `language`.
+
+<p align="center">
+  <img src="docs/images/language-flow.svg" alt="An Igbo message is detected as Igbo, the gateway tells N-ATLaS to reply only in Igbo, and the reply comes back in Igbo" width="100%">
+</p>
 
 **How the integration works.** Every model call goes to `NCAIR1/N-ATLaS`, and no other model is used. The serving layer loads the official weights and applies N-ATLaS's own chat template (including its `date_string` system header). It uses the generation settings recommended on the model card: temperature 0.1 and repetition penalty 1.12. The gateway adds a default multilingual system prompt and builds translation and language-ID tasks as N-ATLaS prompts.
 
@@ -92,10 +105,10 @@ cd gateway
 pip install -r requirements.txt
 cp .env.example .env    # set UPSTREAM_URL, UPSTREAM_KEY, ADMIN_TOKEN (or MOCK_UPSTREAM=1 to develop with no GPU)
 uvicorn app.main:app --reload
-pytest -q               # 23 tests: auth, streaming, OpenAI-SDK compatibility, proxy path, GPU→CPU failover, rate limits, report, language ID
+pytest -q               # 25 tests: auth, streaming, OpenAI-SDK compatibility, proxy path, GPU→CPU failover, rate limits, report, language ID
 ```
 
-**3. CPU backup (optional).** Run `serving/cpu-backup/Dockerfile` on any Docker host with about 8 GB RAM (a VPS, a cloud VM, or a paid Hugging Face Space; Docker Spaces need PRO). Set `LLAMA_API_KEY` there, then set `UPSTREAM_FALLBACK_URL` and `UPSTREAM_FALLBACK_KEY` on the gateway. The `keep-awake` GitHub Action pings the gateway (and the backup, if set) every 10 minutes: set the repository variables `GATEWAY_URL` and optionally `BACKUP_URL`.
+**3. CPU backup (optional).** Run `serving/cpu-backup/Dockerfile` on any Docker host with about 8 GB RAM (a VPS, a cloud VM, or a paid Hugging Face Space; Docker Spaces need PRO). Set `LLAMA_API_KEY` there, then set `UPSTREAM_FALLBACK_URL` and `UPSTREAM_FALLBACK_KEY` on the gateway. On free hosting, the `keep-awake` GitHub Action can ping the gateway (and the backup, if set) every 10 minutes: set the repository variables `GATEWAY_URL` and optionally `BACKUP_URL`. The live gateway runs on a paid, always-on Render instance and doesn't need it.
 
 **Deploy:** in Render, choose New → Blueprint and point it at this repo. `render.yaml` creates the web service and a Postgres database. Set `UPSTREAM_URL` and `UPSTREAM_KEY` in the dashboard.
 
