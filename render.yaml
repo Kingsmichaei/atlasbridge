@@ -2,12 +2,20 @@ services:
   - type: web
     name: atlasbridge
     runtime: python
-    rootDir: gateway
     plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    # No rootDir: commands run from the repo root, so the build can reach both gateway/ and web/.
+    # The website is built into web/dist, which the gateway serves at "/" (see gateway/app/web.py).
+    buildCommand: cd gateway && pip install -r requirements.txt && cd ../web && npm ci --include=dev && npm run build
+    startCommand: cd gateway && uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
+    buildFilter:
+      paths:
+        - gateway/**
+        - web/**
+        - render.yaml
     envVars:
+      - key: NODE_VERSION
+        value: "22"
       - key: UPSTREAM_URL
         sync: false
       - key: UPSTREAM_KEY

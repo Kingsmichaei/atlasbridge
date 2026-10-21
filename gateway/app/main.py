@@ -14,6 +14,8 @@ Developer accounts (session cookie, used by the website): see auth.py and accoun
   /auth/signup, /auth/login, /auth/logout, /auth/me, /auth/config
   /account/keys, /account/keys/{id}/rotate|revoke, /account/usage
 
+Website: web/dist at "/" and other non-API paths, the classic playground at /classic (see web.py).
+
 Admin (Bearer ADMIN_TOKEN):
   POST /admin/keys              create a key
   GET  /admin/keys              list keys
@@ -41,7 +43,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select, update
 
-from . import account, auth, language, upstream
+from . import account, auth, language, upstream, web
 from .config import ATTRIBUTION, DEFAULT_SYSTEM_PROMPT, settings
 from .db import ApiKey, SessionLocal, UsageLog, User, init_db
 from .security import aware, hash_key as _hash, new_key as _new_key
@@ -254,9 +256,8 @@ async def favicon():
     return FileResponse(ico) if ico.exists() else Response(status_code=204)
 
 
-@app.get("/", include_in_schema=False)
-async def playground():
-    return FileResponse(_STATIC / "index.html")
+# The website (web/dist) at "/" and any non-API path, and the classic playground at /classic.
+web.install(app, _error)
 
 
 @app.get("/api")
