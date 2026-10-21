@@ -30,8 +30,8 @@ def _signup_code_required() -> bool:
 
 def user_out(u: User) -> dict:
     return {"id": u.id, "email": u.email, "name": u.name, "organisation": u.organisation,
-            "created_at": u.created_at.isoformat(),
-            "last_login_at": u.last_login_at.isoformat() if u.last_login_at else None}
+            "created_at": security.aware(u.created_at).isoformat(),
+            "last_login_at": security.aware(u.last_login_at).isoformat() if u.last_login_at else None}
 
 
 def require_user(request: Request) -> User:
