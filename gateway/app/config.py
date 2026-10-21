@@ -33,6 +33,18 @@ class Settings:
         default_factory=lambda: [o.strip() for o in os.environ.get("CORS_ORIGINS", "*").split(",") if o.strip()]
     )
 
+    # Developer accounts (website + dashboard).
+    # Signs the session cookie. Empty = a random secret per process, so sessions end on restart.
+    session_secret: str = field(default_factory=lambda: os.environ.get("SESSION_SECRET", ""))
+    session_days: int = field(default_factory=lambda: int(os.environ.get("SESSION_DAYS", "14")))
+    # Always mark the session cookie Secure. Needed behind a TLS-terminating proxy such as Render's.
+    session_cookie_secure: bool = field(default_factory=lambda: _bool("SESSION_COOKIE_SECURE"))
+    # /auth/signup asks for SIGNUP_CODE while this is on and SIGNUP_CODE is set.
+    account_signup_require_code: bool = field(default_factory=lambda: _bool("ACCOUNT_SIGNUP_REQUIRE_CODE", True))
+    max_keys_per_user: int = field(default_factory=lambda: int(os.environ.get("MAX_KEYS_PER_USER", "5")))
+    # Login and signup attempts allowed per client IP in any 15 minutes (each counted separately).
+    auth_attempts_per_15_min: int = field(default_factory=lambda: int(os.environ.get("AUTH_ATTEMPTS_PER_15_MIN", "10")))
+
 
 settings = Settings()
 

@@ -1,4 +1,4 @@
-"""Database models: API keys and usage logs (SQLite locally, Postgres in production)."""
+"""Database models: developer accounts, API keys and usage logs (SQLite locally, Postgres in production)."""
 
 from datetime import datetime, timezone
 
@@ -16,6 +16,30 @@ class Base(DeclarativeBase):
     pass
 
 
+class User(Base):
+    """A developer account on the website. Beta keys made before v2.2.0 have no user."""
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    email: Mapped[str] = mapped_column(String(200), unique=True, index=True)  # always lowercase
+    name: Mapped[str] = mapped_column(String(120))
+    organisation: Mapped[str] = mapped_column(String(200), default="")
+    password_hash: Mapped[str] = mapped_column(String(255))  # argon2id
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class UserSession(Base):
+    """A logged-in browser. The cookie holds a random token; only its SHA-256 is stored."""
+    __tablename__ = "user_sessions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
 class ApiKey(Base):
     __tablename__ = "api_keys"
 
@@ -27,6 +51,13 @@ class ApiKey(Base):
     key_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+    # Added in v2.2.0 (see _migrate). All nullable so existing beta keys keep working unchanged.
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
+    label: Mapped[str] = mapped_column(String(60), default="")
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Deleted keys are revoked and hidden from the dashboard, but the row stays for usage history.
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class UsageLog(Base):
@@ -80,3 +111,24 @@ def _migrate() -> None:
     if "backend" not in cols:
         with engine.begin() as conn:
             conn.execute(text("ALTER TABLE usage_logs ADD COLUMN backend VARCHAR(20) DEFAULT ''"))
+
+    # v2.2.0: developer accounts. The users and user_sessions tables come from create_all above.
+    for sql in migration_sql(set(c["name"] for c in inspect(engine).get_columns("api_keys"))):
+        with engine.begin() as conn:
+            conn.execute(text(sql))
+
+
+def migration_sql(api_key_cols: set[str], dialect: str | None = None) -> list[str]:
+    """The ALTER statements v2.2.0 needs on an api_keys table that has the given columns."""
+    ts = "TIMESTAMP WITH TIME ZONE" if (dialect or engine.dialect.name) == "postgresql" else "DATETIME"
+    wanted = {
+        "user_id": "INTEGER REFERENCES users(id)",
+        "label": "VARCHAR(60) DEFAULT ''",
+        "last_used_at": ts,
+        "revoked_at": ts,
+        "deleted_at": ts,
+    }
+    out = [f"ALTER TABLE api_keys ADD COLUMN {name} {ddl}" for name, ddl in wanted.items() if name not in api_key_cols]
+    if "user_id" not in api_key_cols:
+        out.append("CREATE INDEX IF NOT EXISTS ix_api_keys_user_id ON api_keys (user_id)")
+    return out

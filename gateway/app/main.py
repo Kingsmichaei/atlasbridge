@@ -10,15 +10,19 @@ Public API (Bearer <atlasbridge key>):
 Onboarding:
   POST /v1/signup               {name, email, organisation?, code}  -> new key (beta testers)
 
+Developer accounts (session cookie, used by the website): see auth.py and account.py
+  /auth/signup, /auth/login, /auth/logout, /auth/me, /auth/config
+  /account/keys, /account/keys/{id}/rotate|revoke, /account/usage
+
 Admin (Bearer ADMIN_TOKEN):
   POST /admin/keys              create a key
   GET  /admin/keys              list keys
   POST /admin/keys/{id}/revoke
+  POST /admin/keys/{id}/assign  {user_email}  link a beta key to a developer account
   GET  /admin/report            validation report (JSON or ?format=csv)
 """
 
 import csv
-import hashlib
 import io
 import json
 import secrets
@@ -30,15 +34,17 @@ from datetime import datetime, timezone
 from typing import Literal
 
 from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 
-from . import language, upstream
+from . import account, auth, language, upstream
 from .config import ATTRIBUTION, DEFAULT_SYSTEM_PROMPT, settings
-from .db import ApiKey, SessionLocal, UsageLog, init_db
+from .db import ApiKey, SessionLocal, UsageLog, User, init_db
+from .security import aware, hash_key as _hash, new_key as _new_key
 
 VERSION = "2.1.1"
 
@@ -82,15 +88,25 @@ async def _http_exc(_: Request, exc: HTTPException):
     return _error(exc.status_code, str(exc.detail))
 
 
+_default_validation_handler = app.exception_handlers[RequestValidationError]
+
+
+@app.exception_handler(RequestValidationError)
+async def _validation_exc(request: Request, exc: RequestValidationError):
+    # The account routes use the OpenAI error shape for bad input too. Older routes keep
+    # FastAPI's default 422 body, so existing clients see no change.
+    if not request.url.path.startswith(("/auth/", "/account/")):
+        return await _default_validation_handler(request, exc)
+    first = exc.errors()[0] if exc.errors() else {}
+    field = ".".join(str(p) for p in first.get("loc", ())[1:])
+    return _error(422, f"{field}: {first.get('msg', 'invalid value')}" if field else first.get("msg", "Invalid request."))
+
+
+app.include_router(auth.router)
+app.include_router(account.router)
+
+
 # ---------------- keys & auth ----------------
-
-def _hash(key: str) -> str:
-    return hashlib.sha256(key.encode()).hexdigest()
-
-
-def _new_key() -> str:
-    return "ab_" + secrets.token_urlsafe(24)
-
 
 def _create_key(name: str, email: str = "", organisation: str = "") -> tuple[ApiKey, str]:
     raw = _new_key()
@@ -112,7 +128,18 @@ def require_key(request: Request) -> ApiKey:
     if not k or not k.active:
         raise HTTPException(401, "Invalid or revoked API key.")
     _rate_limit(k.id)
+    _touch(k)
     return k
+
+
+def _touch(k: ApiKey) -> None:
+    """Record when a key was last used, writing at most once a minute per key to keep requests fast."""
+    now = datetime.now(timezone.utc)
+    if k.last_used_at and (now - aware(k.last_used_at)).total_seconds() < 60:
+        return
+    with SessionLocal() as s:
+        s.execute(update(ApiKey).where(ApiKey.id == k.id).values(last_used_at=now))
+        s.commit()
 
 
 def require_admin(request: Request) -> None:
@@ -433,6 +460,29 @@ async def admin_revoke(key_id: int):
         k.active = False
         s.commit()
     return {"id": key_id, "active": False}
+
+
+class KeyAssign(BaseModel):
+    user_email: str = Field(min_length=3, max_length=200)
+
+
+@app.post("/admin/keys/{key_id}/assign", dependencies=[Depends(require_admin)])
+async def admin_assign(key_id: int, body: KeyAssign):
+    """Link an existing (beta) key to a developer account, so it shows in their dashboard.
+
+    Done by hand rather than by matching emails, because account emails aren't verified.
+    """
+    with SessionLocal() as s:
+        k = s.get(ApiKey, key_id)
+        if not k:
+            raise HTTPException(404, "Key not found.")
+        user = s.scalar(select(User).where(User.email == body.user_email.strip().lower()))
+        if not user:
+            raise HTTPException(404, "No account with that email.")
+        k.user_id = user.id
+        k.label = k.label or "Beta key"
+        s.commit()
+    return {"id": key_id, "user_id": user.id, "user_email": user.email, "label": k.label, "active": k.active}
 
 
 @app.get("/admin/report", dependencies=[Depends(require_admin)])

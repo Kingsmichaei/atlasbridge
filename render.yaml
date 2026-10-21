@@ -26,6 +26,10 @@ services:
         value: naic-beta
       - key: LOG_CONTENT
         value: "1"
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: SESSION_COOKIE_SECURE
+        value: "1"
 
 databases:
   - name: atlasbridge-db
