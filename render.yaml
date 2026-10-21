@@ -41,5 +41,5 @@ services:
 
 databases:
   - name: atlasbridge-db
-    plan: free
+    plan: 0.1c-256mb
     databaseName: atlasbridge
