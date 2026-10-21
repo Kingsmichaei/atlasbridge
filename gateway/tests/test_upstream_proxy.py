@@ -38,7 +38,7 @@ def test_proxy_roundtrip(tmp_path):
     try:
         for _ in range(100):
             try:
-                if httpx.get("http://127.0.0.1:8772/health").json()["upstream"]["status"] == "ok":
+                if httpx.get("http://127.0.0.1:8772/health", timeout=httpx.Timeout(5.0, connect=0.5)).json()["upstream"]["status"] == "ok":
                     break
             except Exception:
                 pass
@@ -66,7 +66,7 @@ FAKE_CPU = FAKE.replace('"Sannu da zuwa"', '"Sannu (cpu)"').replace('"Sannu ", "
 def _wait(url):
     for _ in range(100):
         try:
-            return httpx.get(url).json()
+            return httpx.get(url, timeout=httpx.Timeout(5.0, connect=0.5)).json()
         except Exception:
             time.sleep(0.1)
 
