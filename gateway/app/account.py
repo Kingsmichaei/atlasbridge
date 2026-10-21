@@ -6,19 +6,20 @@
   POST   /account/keys/{id}/revoke
   DELETE /account/keys/{id}                   revoke + hide; the row stays for usage history
   GET    /account/usage?days=30
+  POST   /account/password           {current_password, new_password}  ends the user's other sessions
 """
 
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 
 from . import security
 from .auth import require_user
 from .config import settings
-from .db import ApiKey, SessionLocal, UsageLog, User
+from .db import ApiKey, SessionLocal, UsageLog, User, UserSession
 
 router = APIRouter(prefix="/account", tags=["accounts"])
 
@@ -52,6 +53,11 @@ def _own_key(s, user: User, key_id: int) -> ApiKey:
 def _revoke(k: ApiKey) -> None:
     k.active = False
     k.revoked_at = k.revoked_at or datetime.now(timezone.utc)
+
+
+class PasswordBody(BaseModel):
+    current_password: str = Field(max_length=256)
+    new_password: str = Field(min_length=8, max_length=256)
 
 
 class KeyBody(BaseModel):
@@ -148,3 +154,17 @@ async def usage(days: int = Query(30, ge=1, le=365), user: User = Depends(requir
         "by_key": [{"id": kid, "label": keys[kid].label or keys[kid].name, "prefix": keys[kid].prefix, "requests": n}
                    for kid, n in by_key.most_common()],
     }
+
+
+@router.post("/password")
+async def change_password(body: PasswordBody, request: Request, user: User = Depends(require_user)):
+    """Needs the current password. Logs out every other browser; this one stays logged in."""
+    security.check_attempts("password", request)
+    if not security.verify_password(user.password_hash, body.current_password):
+        raise HTTPException(403, "Your current password is incorrect.")
+    current = security.session_token_hash(request.cookies.get(security.SESSION_COOKIE))
+    with SessionLocal() as s:
+        s.get(User, user.id).password_hash = security.hash_password(body.new_password)
+        ended = s.execute(delete(UserSession).where(UserSession.user_id == user.id, UserSession.token_hash != current)).rowcount
+        s.commit()
+    return {"changed": True, "other_sessions_ended": ended}

@@ -332,3 +332,42 @@ def test_expired_sessions_are_cleaned_up_on_login():
     with SessionLocal() as s:
         left = s.scalars(select(UserSession)).all()
     assert len(left) == 1 and security.aware(left[0].expires_at) > datetime.now(timezone.utc)
+
+
+# ---------------- change password ----------------
+
+def test_change_password_keeps_this_session_and_ends_others():
+    here, email = signup(password="old-password-1")
+    there = browser()
+    assert there.post("/auth/login", json={"email": email, "password": "old-password-1"}).status_code == 200
+    other_user, _ = signup()
+
+    r = here.post("/account/password", json={"current_password": "old-password-1", "new_password": "new-password-2"})
+    assert r.status_code == 200, r.text
+    assert r.json() == {"changed": True, "other_sessions_ended": 1}
+    assert here.get("/auth/me").status_code == 200        # this browser stays logged in
+    assert there.get("/auth/me").status_code == 401       # the other one is logged out
+    assert other_user.get("/auth/me").status_code == 200  # other users are untouched
+
+    fresh = browser()
+    assert fresh.post("/auth/login", json={"email": email, "password": "old-password-1"}).status_code == 401
+    assert fresh.post("/auth/login", json={"email": email, "password": "new-password-2"}).status_code == 200
+
+
+def test_change_password_needs_current_password_and_valid_new_one():
+    c, email = signup(password="old-password-1")
+    r = c.post("/account/password", json={"current_password": "wrong-password", "new_password": "new-password-2"})
+    assert r.status_code == 403 and r.json()["error"]["message"] == "Your current password is incorrect."
+    r = c.post("/account/password", json={"current_password": "old-password-1", "new_password": "short"})
+    assert r.status_code == 422 and "new_password" in r.json()["error"]["message"]
+    assert browser().post("/auth/login", json={"email": email, "password": "old-password-1"}).status_code == 200
+
+
+def test_change_password_csrf_session_and_rate_limit():
+    c, _ = signup(password="old-password-1")
+    body = {"current_password": "wrong-password", "new_password": "new-password-2"}
+    assert browser().post("/account/password", json=body).status_code == 401  # no session
+    assert TestClient(app, cookies=c.cookies).post("/account/password", json=body).status_code == 403  # no CSRF header
+    assert c.post("/account/password", json=body, headers={"Origin": "https://evil.example"}).status_code == 403
+    codes = [c.post("/account/password", json=body).status_code for _ in range(11)]
+    assert codes[:10] == [403] * 10 and codes[10] == 429
