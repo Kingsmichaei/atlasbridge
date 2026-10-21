@@ -6,7 +6,7 @@ Thanks for helping make N-ATLaS easier for every Nigerian developer to build wit
 
 - **Report a bug or suggest a feature.** Open a GitHub issue. Include what you did, what you expected and what happened. For language problems, paste the exact text you sent.
 - **Improve language handling.** Add phrases to `gateway/tests/lang_eval.py` (everyday Hausa, Igbo, Yoruba or English, with or without diacritics) or improve `gateway/app/language.py`. Native speakers are especially welcome.
-- **Improve docs and examples.** Fix unclear steps in `README.md` or add example apps that use the SDK.
+- **Improve docs and examples.** Fix unclear steps in `README.md` or the website docs (`web/src/pages/Guide.tsx`), or add example apps that use the SDK.
 - **Write code.** See the roadmap ideas below, or pick any open issue.
 
 ## Development setup
@@ -23,6 +23,19 @@ uvicorn app.main:app --reload   # playground at http://localhost:8000
 pytest -q                       # all tests must pass
 ```
 
+### Website (`web/`)
+
+The website is React + Vite + TypeScript + Tailwind CSS. You need Node 20 or later. Start the gateway as above (`MOCK_UPSTREAM=1` is fine), then in a second terminal:
+
+```bash
+cd web
+npm install
+npm run dev      # http://localhost:5173, with /v1, /auth, /account, /admin and /health proxied to the gateway on :8000
+npm run build    # must pass: type-checks with tsc and writes web/dist
+```
+
+The dev server proxies to the gateway, so the login cookie works without CORS changes. To try the production setup, run `npm run build` and open http://localhost:8000: the gateway serves `web/dist` itself. Keep the site usable on a phone-sized screen (many users are on Android), and keep its dependencies minimal. API keys entered in the playground go in `sessionStorage` only, never `localStorage`.
+
 To work on the SDK, run `pip install -e sdk` from the repo root.
 
 To test against the real model, run the Kaggle notebook in `serving/` and set `UPSTREAM_URL` and `UPSTREAM_KEY` in `.env`.
@@ -32,13 +45,14 @@ To test against the real model, run the Kaggle notebook in `serving/` and set `U
 1. Fork the repo and create a branch: `git checkout -b fix/short-description`.
 2. Keep changes focused: one fix or feature per pull request.
 3. Add or update tests in `gateway/tests/` for any behaviour you change.
-4. Run `pytest -q` and make sure everything passes.
+4. Run `pytest -q` (and `npm run build` in `web/` if you touched the website) and make sure everything passes.
 5. Update `README.md` and `CHANGELOG.md` (under an "Unreleased" heading) if users will notice the change.
 6. Open a pull request that explains what changed and why. Link the issue it fixes.
 
 ## Code style
 
 - Python 3.10+, type hints on public functions, short docstrings that say *why* as well as *what*.
+- Database changes only add tables or nullable/defaulted columns, through `_migrate()` in `gateway/app/db.py`, so existing data and older deployments keep working.
 - Keep the API OpenAI-compatible. AtlasBridge-specific additions go in optional fields (like `language`) or under `x_atlasbridge` in responses, so existing OpenAI clients keep working.
 - All model calls must go to N-ATLaS. Don't add other foundation models.
 
@@ -47,7 +61,7 @@ To test against the real model, run the Kaggle notebook in `serving/` and set `U
 - `/v1/audio/transcriptions` using the N-ATLaS ASR models
 - JavaScript/TypeScript SDK
 - Publish the Python SDK to PyPI
-- Per-key quotas and a usage dashboard
+- Per-key quotas, email verification and password reset
 - vLLM serving for concurrent requests on a persistent GPU
 
 ## Responsible use

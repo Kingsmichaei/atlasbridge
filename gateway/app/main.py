@@ -48,7 +48,7 @@ from .config import ATTRIBUTION, DEFAULT_SYSTEM_PROMPT, settings
 from .db import ApiKey, SessionLocal, UsageLog, User, init_db
 from .security import aware, hash_key as _hash, new_key as _new_key
 
-VERSION = "2.1.1"
+VERSION = "2.2.0"
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):

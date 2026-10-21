@@ -6,6 +6,45 @@ All notable changes to AtlasBridge are recorded here. Versions follow [Semantic 
 
 ---
 
+## v2.2.0 — 21 October 2026
+
+**Developer accounts, a dashboard and a proper website.** Developers can now sign up, manage their own API keys and see their usage, without asking the maintainer.
+
+### Added
+- **Website** (`web/`, React + Vite + TypeScript + Tailwind CSS), served by the gateway at `/`. It works on phones too.
+  - Landing page with live code samples (OpenAI SDK, curl, JavaScript, AtlasBridge SDK) that use the site's own base URL.
+  - Sign up and log in. The invite-code field appears only when the gateway requires one.
+  - **Dashboard:** an overview of the last 30 days (requests, success rate, median latency, requests per day), API keys, usage by endpoint, language and key, and settings.
+  - **Playground** (`/playground`): chat with streaming and "Reply in", translate and detect. The key is kept for the browser tab only.
+  - **Docs** at `/guide`: quick start, authentication, chat, streaming, controlling the reply language, translate, detect, errors and rate limits, and model notes.
+  - The header shows whether N-ATLaS is online (GPU, CPU backup or offline), as the classic page did.
+- **Self-serve API keys:** create (up to 5 active per account, with a label), rotate, revoke and delete. A new key is shown once. Each key records when it was last used.
+- **Account routes:** `/auth/signup`, `/auth/login`, `/auth/logout`, `/auth/me`, `/auth/config`, `/account/keys` (and `/rotate`, `/revoke`, `DELETE`), `/account/usage?days=N` and `/account/password`.
+- **`POST /admin/keys/{id}/assign`** links an existing beta key to a developer account.
+- **`gateway/scripts/check_upgrade.py`** rehearses the v2.1.1 → v2.2.0 database upgrade against an empty Postgres (or SQLite) database.
+- Settings: `SESSION_SECRET`, `SESSION_COOKIE_SECURE`, `SESSION_DAYS`, `ACCOUNT_SIGNUP_REQUIRE_CODE`, `MAX_KEYS_PER_USER`, `AUTH_ATTEMPTS_PER_15_MIN`.
+- 28 new tests: accounts, key management, user isolation, usage, CSRF, rate limits, change password, migrations and website serving (53 tests).
+
+### Changed
+- `/` now serves the website. The original playground moved to **`/classic`**. If the website hasn't been built, `/` still serves the classic page.
+- The Render build also builds the website. `render.yaml` no longer uses `rootDir` and runs `cd gateway && …` explicitly. It sets `NODE_VERSION=22`, matches the instance plan, and only redeploys on changes to `gateway/`, `web/` or `render.yaml`.
+- The proxy tests wait for the gateway with a 0.5 s connect timeout, which makes them much faster on Windows.
+- Unchanged: every `/v1` and `/admin` endpoint, `/health`, `/docs`, `/static` and `/v1/signup` behave as before. Existing beta keys keep working.
+
+### Security
+- Passwords are hashed with argon2id and never stored or logged in plain text. API keys stay SHA-256 hashed, and a raw key is shown only once.
+- Logins use a server-side session. The cookie is an HMAC-signed random token (`SESSION_SECRET`), marked httpOnly, SameSite=Lax and Secure in production. Logging out ends the session on the server. Changing a password ends all of that user's other sessions.
+- CSRF protection on every state-changing account request: the `X-AtlasBridge-Client` header is required, and the browser's `Origin`/`Referer` must be this site.
+- Login, signup and password-change attempts are limited to 10 per IP per 15 minutes. The client IP comes from `CF-Connecting-IP` / `True-Client-IP` or the last `X-Forwarded-For` hop, never the client-supplied first hop.
+- Users can only see and change their own keys and usage. Another user's key returns 404.
+- Beta keys are never attached to accounts by matching email, because emails aren't verified. The admin links them by hand.
+
+### Upgrade
+- On startup, existing databases gain the `users` and `user_sessions` tables, and five nullable columns on `api_keys` (`user_id`, `label`, `last_used_at`, `revoked_at`, `deleted_at`). Nothing is dropped or renamed.
+- Set `SESSION_SECRET` (the Blueprint generates it) and `SESSION_COOKIE_SECURE=1` on Render.
+
+---
+
 ## v2.1.1 — 12 October 2026
 
 Fixes from the public beta session (12 October, 11:00–12:00 WAT).
