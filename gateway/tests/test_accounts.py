@@ -314,3 +314,21 @@ def test_migration_sql_for_postgres():
         "CREATE INDEX IF NOT EXISTS ix_api_keys_user_id ON api_keys (user_id)",
     ]
     assert db.migration_sql({"user_id", "label", "last_used_at", "revoked_at", "deleted_at"}) == []
+
+
+def test_expired_sessions_are_cleaned_up_on_login():
+    from datetime import datetime, timedelta, timezone
+    from sqlalchemy import select, update
+    from app.db import SessionLocal, UserSession
+
+    a, _ = signup()
+    b, email_b = signup()
+    with SessionLocal() as s:  # expire every session that exists right now, including A's
+        s.execute(update(UserSession).values(expires_at=datetime.now(timezone.utc) - timedelta(minutes=1)))
+        s.commit()
+    assert a.get("/auth/me").status_code == 401  # an expired session doesn't authenticate
+
+    assert browser().post("/auth/login", json={"email": email_b, "password": "correct horse"}).status_code == 200
+    with SessionLocal() as s:
+        left = s.scalars(select(UserSession)).all()
+    assert len(left) == 1 and security.aware(left[0].expires_at) > datetime.now(timezone.utc)

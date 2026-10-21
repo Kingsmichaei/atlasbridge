@@ -37,7 +37,7 @@ class UserSession(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
-    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
 
 
 class ApiKey(Base):

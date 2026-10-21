@@ -52,8 +52,8 @@ def _start_session(response: Response, request: Request, user_id: int) -> None:
     cookie, token_hash = security.new_session_token()
     now = datetime.now(timezone.utc)
     with SessionLocal() as s:
-        # Tidy up this user's expired sessions while we're here.
-        s.execute(delete(UserSession).where(UserSession.user_id == user_id, UserSession.expires_at < now))
+        # Every login or signup also clears out all expired sessions, so the table doesn't grow forever.
+        s.execute(delete(UserSession).where(UserSession.expires_at < now))
         s.add(UserSession(user_id=user_id, token_hash=token_hash, expires_at=now + timedelta(days=settings.session_days)))
         s.commit()
     response.set_cookie(security.SESSION_COOKIE, cookie, max_age=settings.session_days * 86400, path="/",
