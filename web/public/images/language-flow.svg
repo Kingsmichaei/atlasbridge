@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 300" width="1280" height="300" role="img" aria-labelledby="t d">
+  <title id="t">How AtlasBridge keeps replies in the user's language</title>
+  <desc id="d">A message in Igbo is detected offline as Igbo, the gateway tells N-ATLaS to reply only in Igbo, and the reply comes back in Igbo. Developers can force a language with the language parameter.</desc>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto"><path d="M0 0L10 5L0 10z" fill="#0a7a45"/></marker>
+  </defs>
+  <rect width="1280" height="300" rx="24" fill="#f2f7f4"/>
+  <g font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" text-anchor="middle">
+    <!-- 1 message -->
+    <rect x="40" y="70" width="210" height="130" rx="16" fill="#ffffff" stroke="#d4e4da" stroke-width="1.5"/>
+    <text x="145" y="104" font-size="13" font-weight="700" fill="#56645c" letter-spacing="1">USER WRITES</text>
+    <rect x="62" y="122" width="166" height="44" rx="22" fill="#e3f2ea"/>
+    <text x="145" y="150" font-size="17" font-weight="600" fill="#14201a">Kedu ka ị mere?</text>
+
+    <line x1="254" y1="135" x2="296" y2="135" stroke="#0a7a45" stroke-width="2.5" marker-end="url(#a)"/>
+
+    <!-- 2 detect -->
+    <rect x="300" y="70" width="220" height="130" rx="16" fill="#ffffff" stroke="#d4e4da" stroke-width="1.5"/>
+    <text x="410" y="104" font-size="13" font-weight="700" fill="#56645c" letter-spacing="1">OFFLINE DETECTOR</text>
+    <text x="410" y="146" font-size="28" font-weight="800" fill="#0a7a45">Igbo (ig)</text>
+    <text x="410" y="176" font-size="13" fill="#56645c">under 1 ms · 97% on unseen text</text>
+
+    <line x1="524" y1="135" x2="566" y2="135" stroke="#0a7a45" stroke-width="2.5" marker-end="url(#a)"/>
+
+    <!-- 3 instruction -->
+    <rect x="570" y="70" width="240" height="130" rx="16" fill="#06331f"/>
+    <text x="690" y="104" font-size="13" font-weight="700" fill="#a9d3bc" letter-spacing="1">GATEWAY TELLS N-ATLaS</text>
+    <text x="690" y="146" font-size="19" font-weight="700" fill="#ffffff">"Reply only in Igbo."</text>
+    <text x="690" y="176" font-size="13" fill="#a9d3bc">plus the N-ATLaS identity prompt</text>
+
+    <line x1="814" y1="135" x2="856" y2="135" stroke="#0a7a45" stroke-width="2.5" marker-end="url(#a)"/>
+
+    <!-- 4 model -->
+    <rect x="860" y="70" width="150" height="130" rx="16" fill="#ffffff" stroke="#0a7a45" stroke-width="2.5"/>
+    <text x="935" y="130" font-size="20" font-weight="800" fill="#0a7a45">N-ATLaS</text>
+    <text x="935" y="156" font-size="13" fill="#56645c">on GPU</text>
+
+    <line x1="1014" y1="135" x2="1046" y2="135" stroke="#0a7a45" stroke-width="2.5" marker-end="url(#a)"/>
+
+    <!-- 5 reply -->
+    <rect x="1050" y="70" width="200" height="130" rx="16" fill="#ffffff" stroke="#d4e4da" stroke-width="1.5"/>
+    <text x="1150" y="104" font-size="13" font-weight="700" fill="#56645c" letter-spacing="1">REPLY IN IGBO</text>
+    <rect x="1062" y="122" width="176" height="44" rx="22" fill="#0a7a45"/>
+    <text x="1150" y="150" font-size="15" font-weight="600" fill="#ffffff">Adị m mma, daalụ!</text>
+
+    <text x="640" y="250" font-size="15" fill="#3c4a42">Want a different language? Send <tspan font-family="'DejaVu Sans Mono', Consolas, Menlo, monospace" fill="#0a7a45" font-weight="700">"language": "ha"</tspan> (or en, ig, yo) and the reply comes back in that language.</text>
+  </g>
+</svg>

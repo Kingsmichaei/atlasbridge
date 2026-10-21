@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand: #0a7a45;
+  --color-brand-dark: #06331f;
+  --color-brand-bright: #12a463;
+  --color-brand-soft: #e7f4ec;
+  --color-gold: #f2b631;
+  --color-ink: #14201a;
+  --color-muted: #5d6b63;
+  --color-line: #dfe4de;
+  --color-paper: #f6f7f4;
+  --color-code: #0f1a14;
+  --color-danger: #b42318;
+  --color-warn: #a15c00;
+  --font-sans: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+
+@layer base {
+  html { -webkit-text-size-adjust: 100%; }
+  body { background: var(--color-paper); color: var(--color-ink); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+  a { color: var(--color-brand); }
+  code { font-family: var(--font-mono); font-size: 0.9em; }
+  :focus-visible { outline: 2px solid var(--color-brand-bright); outline-offset: 2px; }
+}
+
+@utility btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  border-radius: 0.5rem; padding: 0.625rem 1rem; font-size: 0.875rem; font-weight: 600;
+  text-decoration: none; transition: background-color 150ms, border-color 150ms; cursor: pointer; white-space: nowrap;
+  &:disabled { cursor: wait; opacity: 0.6; }
+}
+@utility btn-primary { background: var(--color-brand); color: #fff; &:hover { background: var(--color-brand-dark); } }
+@utility btn-gold { background: var(--color-gold); color: var(--color-brand-dark); &:hover { background: #e3a51c; } }
+@utility btn-ghost { background: #fff; color: var(--color-ink); border: 1px solid var(--color-line); &:hover { background: var(--color-paper); } }
+@utility btn-danger { background: var(--color-danger); color: #fff; &:hover { background: #912018; } }
+@utility card { border-radius: 0.75rem; border: 1px solid var(--color-line); background: #fff; padding: 1.25rem; }
+@utility field {
+  display: block; width: 100%; border-radius: 0.5rem; border: 1px solid var(--color-line); background: #fff;
+  padding: 0.625rem 0.75rem; font-size: 1rem; color: var(--color-ink);
+  &:focus { border-color: var(--color-brand); outline: 2px solid rgb(10 122 69 / 0.25); outline-offset: 0; }
+  @media (width >= 40rem) { font-size: 0.875rem; }
+}
+@utility label { display: block; margin-bottom: 0.25rem; font-size: 0.875rem; font-weight: 500; color: var(--color-muted); }
+@utility container-x {
+  margin-inline: auto; width: 100%; max-width: 72rem; padding-inline: 1rem;
+  @media (width >= 40rem) { padding-inline: 1.5rem; }
+}
